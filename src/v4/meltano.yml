@@ -185,8 +185,8 @@ jobs:
   - tap-singer-jsonl target-postgres
 schedules:
 - name: daily-filesystem-to-psql
-#  interval: '@daily'
-  interval: '*/1 * * * *'  # Every minute (test purposes)
+  interval: '@daily'
+#  interval: '*/1 * * * *'  # Every minute (test purposes)
   job: filesystem-to-psql
   env:
     DATE: '{{ ds }}'

@@ -1,15 +1,35 @@
-## Indicium Code Challenge - Meltano Pipeline
+# Indicium Code Challenge - Meltano Pipeline
 
-# TODO: Instruções gerais de como rodar os pipelines
+## Como rodar os pipelines
 
-Como este trabalho foi produzido:
+### a) Etapa 1: csv para jsonl
+```bash
+DATE='2025-01-31' meltano run csv-to-json
+```
+
+### b) Etapa 1: psql para jsonl
+```bash
+DATE='2025-01-31' meltano run psql-to-json
+```
+
+### c) Etapa 2: jsonl para psql
+```bash
+DATE='2025-01-31' meltano run json-to-psql
+```
+
+### d) Pipeline completo que roda no orquestrador
+```bash
+DATE='2025-01-31' meltano run filesystem-to-psql
+```
+
+## Como este trabalho foi produzido:
 
 ### 🏗️ 1. Organização do Projeto
  - Criação das pastas do projeto.
  - Clone do repositório [Indicium Code Challenge](https://github.com/techindicium/code-challenge).
  - Criação do **virtualenv**.
  - Instalação do **Meltano**.
-
+ - Inicialização do projeto base
 ---
 
 ### 📂 2. Etapa 1: Extração do CSV e Exportação em JSONL (v1)
@@ -41,7 +61,7 @@ meltano config tap-csv set files '[{
 #### ⚙️ Configuração do target-jsonl-csv (Escrita do JSONL do CSV)
 ```bash
 meltano config target-jsonl-csv set destination "local"
-meltano config target-jsonl-csv set local.folder "output/data/csv/$DATE"
+meltano config target-jsonl-csv set local.folder "output/data/csv/\$DATE"
 ```
 
 #### 🚀 Criação do job de execução dos ETL
@@ -55,7 +75,6 @@ DATE='2025-01-31' meltano run csv-to-json
 ```
 
 ---
-
 
 ### 📂 3. Etapa 1: Extração do banco de dados e Exportação em JSONL (v2)
 
@@ -194,7 +213,7 @@ SELECT COUNT(*) FROM order_details;
 
 ---
 
-### 📂 4. Execução do pipeline em um orquestrador/scheduler (v4)
+### 📂 5. Execução do pipeline em um orquestrador/scheduler (v4)
 
 Seguindo os requisitos do trabalho, foi configurado o Apache Airflow para
 executar o pipeline diariamente.
@@ -241,12 +260,12 @@ MELTANO_ENVIRONMENT=dev meltano invoke airflow scheduler
 
 #### 🚀 Ou execução manual e imediata do job
 ```bash
-meltano run csv-to-json
+DATE='2025-01-31' meltano run filesystem-to-psql
 ```
 
 ---
 
-### 📂 5. Query validando resultado final alcançado
+### 📂 6. Query validando resultado final alcançado
 
 Vamos gerar um arquivo CSV a partir do psql que mostre as orders e seus detalhes (order_details)
 

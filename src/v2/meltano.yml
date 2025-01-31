@@ -47,7 +47,6 @@ plugins:
       destination: local
       local:
         folder: output/data/postgres/categories/$DATE
-      custom_name: categories
   - name: target-jsonl-psql-customer_customer_demo
     inherit_from: target-singer-jsonl
     config:
