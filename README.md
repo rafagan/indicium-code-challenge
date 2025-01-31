@@ -282,3 +282,40 @@ PGPASSWORD=thewindisblowing psql -h localhost -U northwind_user -d northwind2
     ON o.order_id = CAST(d.order_id AS bigint)
 ) TO '/path/to/indicium/out/result.csv' WITH CSV HEADER;
 ```
+
+## Conclusões
+
+Achei o Meltano uma ferramenta muito limitada de se trabalhar, ele exige muita
+duplicação de código por falta de configurações simples, o que me fez ter
+que resolver com shell scripting a geração de diversas áreas bem repetitivas.
+Se começasse o desafio hoje, tentaria em Embuk.
+
+Desafios:
+
+1. Pela falta de uma variável que defina qual é a tabela sendo processada,
+foi necessário repetir diversos target loaders de jsonl.
+\
+Ex:
+folder: `output/data/postgres/us_states/$DATE`
+\
+VS
+folder: `output/data/postgres/{current_table}/$DATE`
+
+2. Não é possível definir um nome customizado para arquivos de target-singer-jsonl,
+o que impossibilitou trabalhar no padrão `output/data/postgres/{current_table}/$DATE/file.jsonl`,
+ao invés disso fui obrigado a aceitar os resultados gerados com gz e outra pasta.
+
+3. Integração com Airflow bem difícil de usar. Pouquíssima documentação, e foi muito
+trabalhoso descobrir como passar a data desejada para o orquestrador como parâmetro.
+
+4. tap-postgres não suporta selected_streams, o que não me possibilita selecionar qual
+tabela eu gostaria de exportar. Foi um erro que detectei próximo da entrega, e por isso
+não removi a estrutura do código. Mas basicamente estão sendo geradas todos os gz das tabelas
+para cada pasta de tabela. O correto seria um gz por pasta, contendo a tabela correspondente.
+Tentei criar um tap-postgres-{table} com selected_stream = ["{table}"] para cada
+target-jsonl-psql-{table} mas não funcionou.
+
+5. Inicialmente estava trabalhando só com jsonl, mas ao tentar inserir no loader psql,
+ele só suportava jsonl singer, e essa mudança trouxe muitas limitações para o desenvolvimento,
+pois o jsonl singer ainda está em beta. Trabalhar só com jsonl permitia customizações de nomes
+e diretórios, bem como a geração de um único jsonl por diretório.
