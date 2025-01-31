@@ -21,7 +21,6 @@ The solution should be based on the diagrams below:
 ### Requirements
 
 
-- Step 2 depends on both tasks of step 1, so you should not be able to run step 2 for a day if the tasks from step 1 did not succeed.
-- You should be able to tell where the pipeline failed clearly, so you know from which step you should rerun the pipeline.
+
 - You must provide evidence that the process has been completed successfully, i.e. you must provide a csv or json with the result of the query described above.
 

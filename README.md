@@ -186,11 +186,15 @@ PGPASSWORD=thewindisblowing psql -h localhost -U northwind_user -d northwind2
 northwind2-# \dt
 northwind2=# SELECT * FROM orders LIMIT 10;
 northwind2=# SELECT * FROM order_details LIMIT 10;
+
+# Checar idempotência
+SELECT COUNT(*) FROM orders;
+SELECT COUNT(*) FROM order_details;
 ```
 
 ---
 
-### 📂 4. Execução do pipeline em um orquestrador/scheduler (v2)
+### 📂 4. Execução do pipeline em um orquestrador/scheduler (v4)
 
 Seguindo os requisitos do trabalho, foi configurado o Apache Airflow para
 executar o pipeline diariamente.
@@ -206,7 +210,6 @@ meltano invoke airflow:initialize
 #### ⚙️ Configuração de um usuário Airflow
 ```bash
 meltano invoke airflow users create -u admin -p admin --role Admin -e admin@admin.com -f admin -l admin
-meltano invoke airflow webserver
 ```
 
 #### 📤 Para testar o usuário na UI do Airflow e checar resultado da configuração:
@@ -218,8 +221,17 @@ meltano invoke airflow webserver
 
 #### ⚙️ Configuração de um meltano job para executar no Airflow scheduler:
 ```bash
-meltano job add csv-to-json --tasks "tap-csv target-jsonl"
-meltano schedule add daily-csv-to-json --job csv-to-json --interval "@daily"
+
+TASKS=('"tap-csv target-jsonl-csv"')
+for TABLE in "${TABLES[@]}"; do
+    TASKS+=("\"tap-postgres target-jsonl-psql-${TABLE}\"")
+done
+TASKS+=('"tap-singer-jsonl target-postgres"')
+
+TASKS_STR="[$(IFS=,; echo "${TASKS[*]}")]"
+meltano job add filesystem-to-psql --tasks "$TASKS_STR"
+
+meltano schedule add daily-filesystem-to-psql --job filesystem-to-psql --interval "@daily"
 ```
 
 #### 🚀 Iniciar scheduler para execução de eventos agendados
