@@ -246,4 +246,20 @@ meltano run csv-to-json
 
 ---
 
-# TODO: Montar query e exportar json/csv do resultado
+### 📂 5. Query validando resultado final alcançado
+
+Vamos gerar um arquivo CSV a partir do psql que mostre as orders e seus detalhes (order_details)
+
+#### 📤 Acessar banco de dados:
+```bash
+PGPASSWORD=thewindisblowing psql -h localhost -U northwind_user -d northwind2
+```
+
+#### 📤 Gerar arquivo:
+```sql
+\COPY (
+    SELECT * from orders AS o 
+    JOIN order_details AS d 
+    ON o.order_id = CAST(d.order_id AS bigint)
+) TO '/path/to/indicium/out/result.csv' WITH CSV HEADER;
+```
