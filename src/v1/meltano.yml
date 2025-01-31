@@ -19,13 +19,15 @@ plugins:
         - quantity
         - discount
   loaders:
-  - name: target-jsonl
-    variant: andyh1203
-    pip_url: target-jsonl
+  - name: target-singer-jsonl
+    variant: kgpayne
+    pip_url: target-singer-jsonl
   - name: target-jsonl-csv
-    inherit_from: target-jsonl
+    inherit_from: target-singer-jsonl
     config:
-      destination_path: output/data/csv/$DATE
+      destination: local
+      local:
+        folder: output/data/csv/2025-01-31
 jobs:
 - name: csv-to-json
   tasks:

@@ -1,5 +1,7 @@
 ## Indicium Code Challenge - Meltano Pipeline
 
+# TODO: Instruções gerais de como rodar os pipelines
+
 Como este trabalho foi produzido:
 
 ### 🏗️ 1. Organização do Projeto
@@ -10,20 +12,21 @@ Como este trabalho foi produzido:
 
 ---
 
-### 📂 2. Extração do CSV e Exportação em JSONL (v1)
+### 📂 2. Etapa 1: Extração do CSV e Exportação em JSONL (v1)
 
 Vamos iniciar o desafio gerando o CSV a partir de order_details.csv para a pasta destino
-/data/csv/yyyy-mm-dd/file.jsonl
+/data/csv/yyyy-mm-dd/file.format
 
 O modelo de arquivo escolhido foi jsonl pela facilidade de debugging das informações exportadas,
 bem como por ser um formato bem conhecido pelos desenvolvedores e amplamente suportado pelo meltano
-e outros ambientes de ETL.
+e outros ambientes de ETL. A versão singer conserva dados de schema que facilitam a posterior insersão no loader
+de banco de dados.
 
 #### 🛠️ Instalação dos Plugins
 ```bash
 meltano add extractor tap-csv
-meltano add loader target-jsonl
-meltano add loader target-jsonl --as target-jsonl-csv
+meltano add loader target-singer-jsonl
+meltano add loader target-singer-jsonl --as target-jsonl-csv
 ```
 
 #### ⚙️ Configuração do tap-csv (Leitura do CSV order_details.csv)
@@ -37,7 +40,8 @@ meltano config tap-csv set files '[{
 
 #### ⚙️ Configuração do target-jsonl-csv (Escrita do JSONL do CSV)
 ```bash
-meltano config target-jsonl-csv set destination_path 'output/data/csv/$DATE'
+meltano config target-jsonl-csv set destination "local"
+meltano config target-jsonl-csv set local.folder "output/data/csv/$DATE"
 ```
 
 #### 🚀 Criação do job de execução dos ETL
@@ -47,21 +51,22 @@ meltano job add csv-to-json --tasks 'tap-csv target-jsonl-csv'
 
 #### 🚀 Execução do pipeline
 ```bash
-DATE='2025-01-31' meltano run csv-to-json 
+DATE='2025-01-31' meltano run csv-to-json
 ```
 
 ---
 
 
-### 📂 3. Extração do banco de dados e Exportação em JSONL (v2)
+### 📂 3. Etapa 1: Extração do banco de dados e Exportação em JSONL (v2)
 
 A próxima etapa envolve extrair os dados de northwind.sql para a pasta destino
-/data/postgres/{table}/yyyy-mm-dd/file.jsonl.
+/data/postgres/{table}/yyyy-mm-dd/file.format.
 
 #### 🛠️ Inicialização do banco de dados
 
 A partir do docker-file.yml fornecido no projeto do desafio, vamos iniciar o banco. Na pasta res:
 
+#### 🛠️ Instalação banco de dados e definição das tabelas
 ```bash
 docker compose up -d
 
@@ -103,9 +108,9 @@ meltano config tap-postgres set selected_streams "$STREAMS_JSON"
 for TABLE in "${TABLES[@]}"; do
     LOADER_NAME="target-jsonl-psql-$TABLE"
     
-    meltano add loader "$LOADER_NAME" --inherit-from target-jsonl
-    meltano config "$LOADER_NAME" set destination_path "output/data/postgres/$TABLE/\$DATE"
-    meltano config "$LOADER_NAME" set custom_name "$TABLE"
+    meltano add loader "$LOADER_NAME" --inherit-from target-singer-jsonl
+    meltano config "$LOADER_NAME" set destination "local"
+    meltano config "$LOADER_NAME" set local.folder "output/data/postgres/$TABLE/\$DATE"
 done
 
 ```
@@ -128,10 +133,62 @@ DATE='2025-01-31' meltano run psql-to-json
 
 ---
 
+### 📂 4. Etapa 2: Importação dos dados do filesystem no psql (v3)
 
+Agora que todos os dados, tanto do CSV como do psql foram exportados para o filesystem (etapa 1),
+respeitando uma estrutura de pastas. A etapa 2 então consiste em importar os dados dos arquivos
+para tabelas de um novo banco de dados
 
+#### 🛠️ Instalação e configuração loader psql
+```bash
+meltano add loader target-postgres
+meltano config target-postgres set host "localhost"
+meltano config target-postgres set port "5432"
+meltano config target-postgres set database "northwind2"
+meltano config target-postgres set user "northwind_user"
+meltano config target-postgres set password "thewindisblowing"
+meltano config target-postgres set default_target_schema public
+```
 
+#### ⚙️ Criação tabela loader psql (no banco de dados)
+```SQL
+-- PGPASSWORD=thewindisblowing psql -h localhost -U northwind_user -d postgres
+CREATE DATABASE northwind2;
+```
 
+#### 🛠️ Instalação e configuração extractor jsonl
+```bash
+meltano add extractor tap-singer-jsonl
+meltano config tap-singer-jsonl set source local
+
+JSON_FOLDERS="[
+  \"output/data/postgres\",
+  \"output/data/csv\"
+]"
+
+meltano config tap-singer-jsonl set local.recursive true
+meltano config tap-singer-jsonl set local.folders "$JSON_FOLDERS"
+```
+
+#### 🚀 Criação do job de escrita no banco de dados psql do filesystem
+```bash
+meltano job add json-to-psql --tasks "tap-singer-jsonl target-postgres"
+```
+
+#### 🚀 Execução do pipeline
+```bash
+DATE='2025-01-31' meltano run json-to-psql
+```
+
+#### 📤 Para testar se a importação foi bem sucedida:
+```bash
+PGPASSWORD=thewindisblowing psql -h localhost -U northwind_user -d northwind2
+northwind2-# \dt
+northwind2=# SELECT * FROM orders LIMIT 10;
+northwind2=# SELECT * FROM order_details LIMIT 10;
+```
+
+---
 
 ### 📂 4. Execução do pipeline em um orquestrador/scheduler (v2)
 
@@ -176,3 +233,5 @@ meltano run csv-to-json
 ```
 
 ---
+
+# TODO: Montar query e exportar json/csv do resultado

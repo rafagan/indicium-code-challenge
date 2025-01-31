@@ -2,8 +2,7 @@ version: 1
 project_id: a86c2626-9cc1-4a55-957b-0701f6bb8101
 default_environment: dev
 environments:
-  - name: dev
-    config: {}
+- name: dev
 plugins:
   extractors:
   - name: tap-csv
@@ -19,24 +18,124 @@ plugins:
         - unit_price
         - quantity
         - discount
-  loaders:
-  - name: target-jsonl
-    variant: andyh1203
-    pip_url: target-jsonl
+  - name: tap-postgres
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-postgres.git
     config:
-      destination_path: output
-  utilities:
-  - name: airflow
-    variant: apache
-    pip_url: git+https://github.com/meltano/airflow-ext.git@main apache-airflow==2.8.1
-      --constraint 
-      https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-no-providers-${MELTANO__PYTHON_VERSION}.txt
+      host: localhost
+      port: 5432
+      database: northwind
+      user: northwind_user
+      state: enabled
+      state_id_suffix: latest
+      filter_schemas:
+      - public
+      selected_streams: '["categories","customer_customer_demo","customer_demographics","customers","employee_territories","employees","orders","products","region","shippers","suppliers","territories","us_states"]'
+  loaders:
+  - name: target-singer-jsonl
+    variant: kgpayne
+    pip_url: target-singer-jsonl
+  - name: target-jsonl-csv
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/csv/2025-01-31
+  - name: target-jsonl-psql-categories
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/categories/$DATE
+      custom_name: categories
+  - name: target-jsonl-psql-customer_customer_demo
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/customer_customer_demo/$DATE
+  - name: target-jsonl-psql-customer_demographics
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/customer_demographics/$DATE
+  - name: target-jsonl-psql-customers
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/customers/$DATE
+  - name: target-jsonl-psql-employee_territories
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/employee_territories/$DATE
+  - name: target-jsonl-psql-employees
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/employees/$DATE
+  - name: target-jsonl-psql-orders
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/orders/$DATE
+  - name: target-jsonl-psql-products
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/products/$DATE
+  - name: target-jsonl-psql-region
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/region/$DATE
+  - name: target-jsonl-psql-shippers
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/shippers/$DATE
+  - name: target-jsonl-psql-suppliers
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/suppliers/$DATE
+  - name: target-jsonl-psql-territories
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/territories/$DATE
+  - name: target-jsonl-psql-us_states
+    inherit_from: target-singer-jsonl
+    config:
+      destination: local
+      local:
+        folder: output/data/postgres/us_states/$DATE
 jobs:
 - name: csv-to-json
   tasks:
-  - tap-csv target-jsonl
-schedules:
-- name: daily-csv-to-json
-  interval: '@daily'
-#  interval: '*/1 * * * *'  # Every minute (test purposes)
-  job: csv-to-json
+  - tap-csv target-jsonl-csv
+- name: psql-to-json
+  tasks:
+  - tap-postgres target-jsonl-psql-categories
+  - tap-postgres target-jsonl-psql-customer_customer_demo
+  - tap-postgres target-jsonl-psql-customer_demographics
+  - tap-postgres target-jsonl-psql-customers
+  - tap-postgres target-jsonl-psql-employee_territories
+  - tap-postgres target-jsonl-psql-employees
+  - tap-postgres target-jsonl-psql-orders
+  - tap-postgres target-jsonl-psql-products
+  - tap-postgres target-jsonl-psql-region
+  - tap-postgres target-jsonl-psql-shippers
+  - tap-postgres target-jsonl-psql-suppliers
+  - tap-postgres target-jsonl-psql-territories
+  - tap-postgres target-jsonl-psql-us_states

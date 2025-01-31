@@ -1,0 +1,42 @@
+version: 1
+project_id: a86c2626-9cc1-4a55-957b-0701f6bb8101
+default_environment: dev
+environments:
+  - name: dev
+    config: {}
+plugins:
+  extractors:
+  - name: tap-csv
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
+    config:
+      files:
+      - entity: order_details
+        path: ../../res/data/order_details.csv
+        keys:
+        - order_id
+        - product_id
+        - unit_price
+        - quantity
+        - discount
+  loaders:
+  - name: target-jsonl
+    variant: andyh1203
+    pip_url: target-jsonl
+    config:
+      destination_path: output
+  utilities:
+  - name: airflow
+    variant: apache
+    pip_url: git+https://github.com/meltano/airflow-ext.git@main apache-airflow==2.8.1
+      --constraint 
+      https://raw.githubusercontent.com/apache/airflow/constraints-2.8.1/constraints-no-providers-${MELTANO__PYTHON_VERSION}.txt
+jobs:
+- name: csv-to-json
+  tasks:
+  - tap-csv target-jsonl
+schedules:
+- name: daily-csv-to-json
+  interval: '@daily'
+#  interval: '*/1 * * * *'  # Every minute (test purposes)
+  job: csv-to-json
