@@ -1,0 +1,122 @@
+version: 1
+project_id: a86c2626-9cc1-4a55-957b-0701f6bb8101
+default_environment: dev
+environments:
+- name: dev
+plugins:
+  extractors:
+  - name: tap-csv
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
+    config:
+      files:
+      - entity: order_details
+        path: ../../res/data/order_details.csv
+        keys:
+        - order_id
+        - product_id
+        - unit_price
+        - quantity
+        - discount
+  - name: tap-postgres
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-postgres.git
+    config:
+      host: localhost
+      port: 5432
+      database: northwind
+      user: northwind_user
+      filter_schemas:
+      - public
+      state: enabled
+      state_id_suffix: latest
+      selected_streams: '["categories","customer_customer_demo","customer_demographics","customers","employee_territories","employees","orders","products","region","shippers","suppliers","territories","us_states"]'
+  loaders:
+  - name: target-jsonl
+    variant: andyh1203
+    pip_url: target-jsonl
+  - name: target-jsonl-csv
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/csv/$DATE
+  - name: target-jsonl-psql-categories
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/categories/$DATE
+      custom_name: categories
+  - name: target-jsonl-psql-customer_customer_demo
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/customer_customer_demo/$DATE
+      custom_name: customer_customer_demo
+  - name: target-jsonl-psql-customer_demographics
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/customer_demographics/$DATE
+      custom_name: customer_demographics
+  - name: target-jsonl-psql-customers
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/customers/$DATE
+      custom_name: customers
+  - name: target-jsonl-psql-employee_territories
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/employee_territories/$DATE
+      custom_name: employee_territories
+  - name: target-jsonl-psql-employees
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/employees/$DATE
+      custom_name: employees
+  - name: target-jsonl-psql-orders
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/orders/$DATE
+      custom_name: orders
+  - name: target-jsonl-psql-products
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/products/$DATE
+      custom_name: products
+  - name: target-jsonl-psql-region
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/region/$DATE
+      custom_name: region
+  - name: target-jsonl-psql-shippers
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/shippers/$DATE
+      custom_name: shippers
+  - name: target-jsonl-psql-suppliers
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/suppliers/$DATE
+      custom_name: suppliers
+  - name: target-jsonl-psql-territories
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/territories/$DATE
+      custom_name: territories
+  - name: target-jsonl-psql-us_states
+    inherit_from: target-jsonl
+    config:
+      destination_path: output/data/postgres/us_states/$DATE
+      custom_name: us_states
+jobs:
+- name: psql-to-json
+  tasks:
+  - tap-postgres target-jsonl-psql-categories
+  - tap-postgres target-jsonl-psql-customer_customer_demo
+  - tap-postgres target-jsonl-psql-customer_demographics
+  - tap-postgres target-jsonl-psql-customers
+  - tap-postgres target-jsonl-psql-employee_territories
+  - tap-postgres target-jsonl-psql-employees
+  - tap-postgres target-jsonl-psql-orders
+  - tap-postgres target-jsonl-psql-products
+  - tap-postgres target-jsonl-psql-region
+  - tap-postgres target-jsonl-psql-shippers
+  - tap-postgres target-jsonl-psql-suppliers
+  - tap-postgres target-jsonl-psql-territories
+  - tap-postgres target-jsonl-psql-us_states

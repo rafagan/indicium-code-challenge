@@ -1,5 +1,8 @@
 version: 1
 project_id: a86c2626-9cc1-4a55-957b-0701f6bb8101
+default_environment: dev
+environments:
+- name: dev
 plugins:
   extractors:
   - name: tap-csv
@@ -19,5 +22,11 @@ plugins:
   - name: target-jsonl
     variant: andyh1203
     pip_url: target-jsonl
+  - name: target-jsonl-csv
+    inherit_from: target-jsonl
     config:
-      destination_path: output
+      destination_path: output/data/csv/$DATE
+jobs:
+- name: csv-to-json
+  tasks:
+  - tap-csv target-jsonl-csv

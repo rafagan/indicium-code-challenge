@@ -1,4 +1,3 @@
 venv/
 .idea
-out
-/README.md
+dbdata/
